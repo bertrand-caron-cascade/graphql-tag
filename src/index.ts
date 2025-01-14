@@ -6,10 +6,12 @@ import {
   Location,
 } from 'graphql/language/ast';
 
-type DocumentNodeWithLiterals = DocumentNode & {literals?: string[]};
+type DocumentNodeWithMaybeLiterals = DocumentNode & {literals?: string[]};
+
+type DocumentNodeWithRequiredLiterals = DocumentNode & {literals: string[]};
 
 // A map docString -> graphql document
-const docCache = new Map<string, DocumentNode>();
+const docCache = new Map<string, DocumentNodeWithRequiredLiterals>();
 
 // A map fragmentName -> [normalized source]
 const fragmentSourceMap = new Map<string, Set<string>>();
@@ -70,7 +72,7 @@ function processFragments(ast: DocumentNode) {
   };
 }
 
-function stripLoc(doc: DocumentNodeWithLiterals, literals: string[]): DocumentNodeWithLiterals {
+function stripLoc(doc: DocumentNodeWithMaybeLiterals, literals: string[]): DocumentNodeWithRequiredLiterals {
   const workSet = new Set<Record<string, any>>(doc.definitions);
 
   workSet.forEach(node => {
@@ -91,10 +93,10 @@ function stripLoc(doc: DocumentNodeWithLiterals, literals: string[]): DocumentNo
 
   doc.literals = literals;
 
-  return doc;
+  return doc as DocumentNodeWithRequiredLiterals;
 }
 
-function parseDocument(source: string, literals: string[]): DocumentNodeWithLiterals {
+function parseDocument(source: string, literals: string[]): DocumentNodeWithRequiredLiterals {
   var cacheKey = normalize(source);
   if (!docCache.has(cacheKey)) {
     const parsed = parse(source, {
@@ -118,7 +120,7 @@ function parseDocument(source: string, literals: string[]): DocumentNodeWithLite
 export function gql(
   literals: string | readonly string[],
   ...args: any[]
-): DocumentNodeWithLiterals {
+): DocumentNodeWithRequiredLiterals {
 
   if (typeof literals === 'string') {
     literals = [literals];
