@@ -9,6 +9,7 @@ const loader = require('../loader');
 describe('gql', () => {
   it('parses queries', () => {
     assert.equal(gql`{ testQuery }`.kind, 'Document');
+    assert.deepEqual(gql`{ testQuery }`.literals, ["{ testQuery }"]);
   });
 
   it('parses queries when called as a function', () => {

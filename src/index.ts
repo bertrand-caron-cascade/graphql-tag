@@ -6,6 +6,8 @@ import {
   Location,
 } from 'graphql/language/ast';
 
+type DocumentNodeWithLiterals = DocumentNode & {literals?: string[]};
+
 // A map docString -> graphql document
 const docCache = new Map<string, DocumentNode>();
 
@@ -68,7 +70,7 @@ function processFragments(ast: DocumentNode) {
   };
 }
 
-function stripLoc(doc: DocumentNode) {
+function stripLoc(doc: DocumentNodeWithLiterals, literals: string[]): DocumentNodeWithLiterals {
   const workSet = new Set<Record<string, any>>(doc.definitions);
 
   workSet.forEach(node => {
@@ -87,10 +89,12 @@ function stripLoc(doc: DocumentNode) {
     delete loc.endToken;
   }
 
+  doc.literals = literals;
+
   return doc;
 }
 
-function parseDocument(source: string) {
+function parseDocument(source: string, literals: string[]): DocumentNodeWithLiterals {
   var cacheKey = normalize(source);
   if (!docCache.has(cacheKey)) {
     const parsed = parse(source, {
@@ -104,7 +108,7 @@ function parseDocument(source: string) {
       cacheKey,
       // check that all "new" fragments inside the documents are consistent with
       // existing fragments of the same name
-      stripLoc(processFragments(parsed)),
+      stripLoc(processFragments(parsed), literals),
     );
   }
   return docCache.get(cacheKey)!;
@@ -114,7 +118,7 @@ function parseDocument(source: string) {
 export function gql(
   literals: string | readonly string[],
   ...args: any[]
-) {
+): DocumentNodeWithLiterals {
 
   if (typeof literals === 'string') {
     literals = [literals];
@@ -131,7 +135,7 @@ export function gql(
     result += literals[i + 1];
   });
 
-  return parseDocument(result);
+  return parseDocument(result, literals as string[]);
 }
 
 export function resetCaches() {
